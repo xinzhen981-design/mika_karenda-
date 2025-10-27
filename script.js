@@ -1,11 +1,13 @@
-// テスト用：各日付の解放時刻を設定
-const unlockSchedule = {
-    1: new Date('2025-10-27T21:15:00'),
-    2: new Date('2025-10-27T21:17:00'),
-    3: new Date('2025-10-27T21:19:00'),
-    4: new Date('2025-10-27T21:21:00'),
-    5: new Date('2025-10-27T21:23:00')
-};
+// 本番環境：各日付の解放時刻を生成（午前7時）
+function generateUnlockSchedule() {
+    const schedule = {};
+    for (let day = 1; day <= 30; day++) {
+        schedule[day] = new Date(`2025-11-${String(day).padStart(2, '0')}T07:00:00`);
+    }
+    return schedule;
+}
+
+const unlockSchedule = generateUnlockSchedule();
 
 // 各日付の確認メッセージ（朝用）
 const confirmMessages = {
@@ -13,7 +15,32 @@ const confirmMessages = {
     2: '今日も素敵な1日にしようね♡\n2日の音声を聴く？',
     3: '朝だよ♡\n3日の音声を聴く？',
     4: '今日も応援してるよ♡\n4日の音声を聴く？',
-    5: '5日目の朝♡\n音声を聴く？'
+    5: 'おはよう！今日も頑張ろうね♡\n5日の音声を聴く？',
+    6: '素敵な朝だね♡\n6日の音声を聴く？',
+    7: '1週間お疲れさま♡\n7日の音声を聴く？',
+    8: 'おはよう♡\n8日の音声を聴く？',
+    9: '今日もいい日になりますように♡\n9日の音声を聴く？',
+    10: '10日目だね♡\n音声を聴く？',
+    11: 'おはよう♡\n11日の音声を聴く？',
+    12: '今日も応援してるよ♡\n12日の音声を聴く？',
+    13: '朝だよ♡\n13日の音声を聴く？',
+    14: 'おはよう！元気だしてね♡\n14日の音声を聴く？',
+    15: '半分きたね♡\n15日の音声を聴く？',
+    16: 'おはよう♡\n16日の音声を聴く？',
+    17: '今日も素敵な1日にしようね♡\n17日の音声を聴く？',
+    18: 'おはよう♡\n18日の音声を聴く？',
+    19: '今日も頑張ろうね♡\n19日の音声を聴く？',
+    20: '20日目♡\n音声を聴く？',
+    21: 'おはよう♡\n21日の音声を聴く？',
+    22: '週末だね♡\n22日の音声を聴く？',
+    23: 'おはよう♡\n23日の音声を聴く？',
+    24: '今日も応援してるよ♡\n24日の音声を聴く？',
+    25: 'おはよう♡\n25日の音声を聴く？',
+    26: '今日も素敵な1日にしようね♡\n26日の音声を聴く？',
+    27: 'おはよう♡\n27日の音声を聴く？',
+    28: 'もうすぐ終わりだね♡\n28日の音声を聴く？',
+    29: 'おはよう♡\n29日の音声を聴く？',
+    30: '最終日♡ありがとう♡\n30日の音声を聴く？'
 };
 
 // 日付ボタンの参照を保持
@@ -53,14 +80,9 @@ function generateCalendar() {
             dayElement.classList.add('weekday');
         }
         
-        // テスト環境：1～5日は音声ファイルが利用可能
-        if (day >= 1 && day <= 5) {
-            dayElement.addEventListener('click', () => playAudio(day));
-            dayButtons[day] = dayElement; // 参照を保持
-        } else {
-            // 6日以降は音声ファイルがないので無効化
-            dayElement.classList.add('disabled');
-        }
+        // 全ての日付にクリックイベントを追加
+        dayElement.addEventListener('click', () => playAudio(day));
+        dayButtons[day] = dayElement; // 参照を保持
         
         calendarDays.appendChild(dayElement);
     }
@@ -76,16 +98,22 @@ function generateCalendar() {
 function updateButtonStates() {
     const now = new Date();
     
-    for (let day = 1; day <= 5; day++) {
+    for (let day = 1; day <= 30; day++) {
         const button = dayButtons[day];
         const unlockTime = unlockSchedule[day];
         
-        if (now >= unlockTime) {
+        // 次の日の午前7時を計算（ロック時刻）
+        const lockTime = day < 30 
+            ? unlockSchedule[day + 1] 
+            : new Date('2025-12-01T07:00:00'); // 30日の場合は12月1日午前7時
+        
+        // 解放条件：解放時刻を過ぎている かつ ロック時刻前
+        if (now >= unlockTime && now < lockTime) {
             // 解放済み：ボタンを有効化
             button.classList.add('unlocked');
             button.classList.remove('locked');
         } else {
-            // 未解放：ボタンを無効化
+            // 未解放またはロック済み：ボタンを無効化
             button.classList.add('locked');
             button.classList.remove('unlocked');
         }
@@ -149,14 +177,28 @@ function playAudio(day) {
     
     // 未解放の場合は再生しない
     if (button.classList.contains('locked')) {
+        const now = new Date();
         const unlockTime = unlockSchedule[day];
-        const timeString = unlockTime.toLocaleString('ja-JP', {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        alert(`この音声は ${timeString} に解放されます。`);
+        const lockTime = day < 30 
+            ? unlockSchedule[day + 1] 
+            : new Date('2025-12-01T07:00:00');
+        
+        let message;
+        if (now < unlockTime) {
+            // まだ解放されていない
+            const timeString = unlockTime.toLocaleString('ja-JP', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            message = `この音声は ${timeString} に解放されます♡`;
+        } else if (now >= lockTime) {
+            // 期限切れ
+            message = 'この音声の再生期限が過ぎました💦\n次の音声を楽しみにしていてね♡';
+        }
+        
+        alert(message);
         return;
     }
     
